@@ -151,8 +151,6 @@ counter = AreaPersonCounter(image_width=1024, image_height=576)
 
 ## 🧑‍💻 作成者
 
-Keisuke Iwasaki (example)
-
-ご意見やPRは歓迎です！
+Keisuke Iwasaki 
 
 ---
