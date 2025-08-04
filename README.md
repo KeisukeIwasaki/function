@@ -1,156 +1,135 @@
-# AreaPersonCounter
+# README
 
-**AreaPersonCounter** は、画像内で検出された人物のバウンディングボックス情報をもとに、事前に定義したエリアごとに人物を分類・カウント・可視化・レポート出力する Python スクリプトです。
+## 📁 概要
 
----
+このプロジェクトは、YOLO物体検出で得られた人物検出結果を分析するための2つのPythonスクリプトで構成されています。
+以下のタスクを実行します：
 
-## 📌 主な機能
-
-* 多角形で定義されたエリアへの人物の分類
-* 各エリアごとの人数カウント
-* 可視化（エリアと人物位置）
-* 詳細レポートの生成（信頼度・座標・識別番号付き）
+1. `count_pic_fiexed.py`：画像上の定義済みポリゴン領域ごとの検出人数をカウントし、結果を可視化します。
+2. `generate_image.py`：YOLO検出と目視カウントの誤差（差分）を分析し、積み上げ棒グラフとして可視化します。
 
 ---
 
-## 💡 使用例
+## 1. `count_pic_fiexed.py`
 
-```python
-from area_person_counter import AreaPersonCounter
+### 🔧 機能
 
-# バウンディングボックス例
-sample_bboxes = [
-    {"x1": 100, "y1": 200, "x2": 150, "y2": 350, "confidence": 0.9},
-    {"x1": 300, "y1": 250, "x2": 360, "y2": 400, "confidence": 0.8},
-    ...
-]
+* YOLO検出結果のCSVファイルを読み込み
+* バウンディングボックスを画像座標にスケーリング
+* 各検出がどのポリゴン領域に属するかを判定
+* 画像ごとに領域別の人数をカウント
+* バウンディングボックスとエリアを画像上に描画
+* アノテーション済み画像と要約CSVを保存
 
-counter = AreaPersonCounter(image_width=1024, image_height=576)
-
-# 人数をカウント
-result = counter.count_people_by_area(sample_bboxes)
-
-# レポートを出力
-print(counter.generate_report(sample_bboxes))
-
-# 可視化（表示または保存）
-counter.visualize_areas_and_detections(sample_bboxes, save_path="result.png")
-```
-
----
-
-## 🛠️ セットアップ
-
-### 必要なライブラリ
+### ✍️ 使い方
 
 ```bash
-pip install matplotlib numpy
+python count_pic_fiexed.py
 ```
+
+### 📂 入力
+
+* CSVファイル：`csv_file_path` に設定されたパス
+* 画像ディレクトリ：`image_dir` に設定されたパス
+
+### 📤 出力
+
+* バウンディングボックスとエリア描画済み画像：`output_dir` に保存
+* エリア別カウント結果CSV：`area_count_output` に保存
+
+### ⚙️ 設定
+
+`main()` 関数内の以下の変数を適宜変更してください：
+
+```python
+csv_file_path = "path/to/detection_results.csv"
+image_dir = "path/to/image_directory"
+output_dir = "path/to/output_directory"
+area_count_output = "path/to/area_count_results.csv"
+```
+
+### ✅ 特徴
+
+* 複数のデバイスIDに対応したポリゴンエリア定義
+* Ray-casting アルゴリズムによる領域判定
+* ±10秒の時刻誤差を考慮したファイル検索
+* スケーリングされたバウンディングボックス描画
+* OpenCVによる可視化処理
+
+### 🔍 出力例
+
+* アノテーション画像名：`deviceID_date_time_loopCount_annotated.jpg`
+* 結果CSV名：`area_count_results.csv`
 
 ---
 
-## 🧱️ クラス構成
+## 2. `generate_image.py`
 
-### `AreaPersonCounter`
+### 🔧 機能
 
-| メソッド名                                                    | 説明                       |
-| -------------------------------------------------------- | ------------------------ |
-| `count_people_by_area(bboxes)`                           | バウンディングボックスをエリア分類してカウント  |
-| `classify_person_to_area(bbox)`                          | 足元の座標により人物をエリアに分類        |
-| `visualize_areas_and_detections(bboxes, save_path=None)` | エリアと人物位置をプロット表示（画像保存も可能） |
-| `generate_report(bboxes)`                                | エリア別人数・詳細付きのレポートを生成      |
-| `get_bbox_bottom_center(bbox)`                           | バウンディングボックス底辺の中心座標を取得    |
-| `point_in_polygon(point, polygon)`                       | レイキャスティング法で点の多角形内判定      |
+* 人数比較CSVを読み込み
+* YOLO検出と目視カウントの誤差（絶対値）を算出
+* 時間×エリアごとの誤差を積み上げ棒グラフとして表示
+* 統計情報をPNGとして保存＋ターミナルに出力
 
----
+### ✍️ 使い方
 
-## 📊 出力例
+```bash
+python generate_image.py
+```
+
+### 📂 入力
+
+* 以下のカラムを含むCSVファイル：
+
+  * `time`, `area`, `Difference`
+
+CSVの例：
 
 ```
-==================================================
-エリア別人数カウント結果
-==================================================
-総検出数: 15人
-
-【エリア別集計】
-エリアB: 0人
-エリアC: 9人
-エリアA: 0人
-エリアD: 6人
-不明: 0人
-
-【詳細情報】
-人物1: エリアC (信頼度: 0.925, 位置: (266.2, 514.1))
-人物2: エリアC (信頼度: 0.905, 位置: (68.3, 436.9))
+time, area, 目視人数, YOLO検出人数, Difference
+12:00:00, A, 10, 8, -2
 ...
 ```
 
----
+### 📤 出力
 
-## 🎨 可視化サンプル
+* 積み上げ棒グラフPNG：`output_path` に保存
+* ターミナル：領域別および時間別の統計情報を表示
 
-* エリアはポリゴンで色分け表示
-* 各人物の足元に識別番号と色付きの点を表示
-* 出力番号、信頼度、座標など一覧化
+### ⚙️ 設定
 
-```python
-counter.visualize_areas_and_detections(sample_bboxes)
-# または画像保存：
-counter.visualize_areas_and_detections(sample_bboxes, save_path="result.png")
-```
-
----
-
-## ⚙️ カスタマイズ
-
-### エリア定義の変更
+以下の変数を変更してください：
 
 ```python
-self.areas = {
-    'Area A': {
-        'polygon': [(400, 0), (1024, 0), (1024, 300), (600, 200), (400, 200)]
-    },
-    ...
-}
+csv_path = "path/to/your_input.csv"
+output_path = "path/to/save/stacked_chart.png"
 ```
 
-### 画像サイズの設定
+### ✅ 特徴
 
-```python
-counter = AreaPersonCounter(image_width=1024, image_height=576)
+* `Difference` の絶対値を誤差として計算
+* 領域別に色分けされた積み上げ棒グラフ
+* 時刻順にX軸ラベルを整形
+* 領域別・時刻別の統計情報を表示
+
+### 📊 出力例
+
+![Stacked Error Chart](./output/stacked_chart.png) *(画像が存在する場合)*
+
+---
+
+## 📚 必要なライブラリ
+
+```bash
+pip install pandas numpy opencv-python matplotlib
 ```
 
 ---
 
-## 📁 サンプル入力フォーマット
+## 📅 作者
 
-```json
-{
-  "x1": 100,
-  "y1": 200,
-  "x2": 150,
-  "y2": 350,
-  "confidence": 0.85,
-  "classId": 0
-}
-```
-
-* `x1, y1`: 左上の座標
-* `x2, y2`: 右下の座標
-* `confidence`: 検出の信頼度 (0.0 − 1.0)
+岩崎 圭佑
 
 ---
 
-## ⚠️ 注意事項
-
-* エリア判定は人物の「足元」に基づいています
-* 境界付近にいる場合は誤分類されることがあります
-* エリアの座標は画像ごとに調整してください
-
----
-
-## 🧑‍💻 作成者
-
-Keisuke Iwasaki 
-
----
